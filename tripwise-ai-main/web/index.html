@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TripWise AI</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b2430;--mu:#667085;--ac:#2563eb;--bd:#e3e6eb;--ok:#067647;--okb:#e7f6ec;--wn:#93370d;--wnb:#fff4e5;--in:#175cd3;--inb:#eaf1ff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10151c;--card:#182029;--tx:#e8edf3;--mu:#98a2b3;--ac:#6ea0ff;--bd:#2a3542;--ok:#75e0a7;--okb:#12301f;--wn:#fdb022;--wnb:#3a2a0d;--in:#84adff;--inb:#172a4d}}
+:root[data-theme="dark"]{--bg:#10151c;--card:#182029;--tx:#e8edf3;--mu:#98a2b3;--ac:#6ea0ff;--bd:#2a3542;--ok:#75e0a7;--okb:#12301f;--wn:#fdb022;--wnb:#3a2a0d;--in:#84adff;--inb:#172a4d}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+h1{margin:4px 0 0;font-size:24px}.sub{color:var(--mu);margin:0 0 14px}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:16px}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:14px}
+.card h2{font-size:16px;margin:0 0 10px}
+label{display:block;font-size:13px;color:var(--mu);margin:10px 0 3px}
+input[type=number],input[list],select{width:100%;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chips label{margin:0;display:inline-flex;gap:4px;align-items:center;padding:4px 10px;border:1px solid var(--bd);border-radius:99px;color:var(--tx);cursor:pointer}
+.chips input:checked+span{color:var(--ac);font-weight:600}
+.m{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.m div{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px}
+.m small{color:var(--mu)}.m b{display:block;font-size:20px}
+.al{padding:9px 12px;border-radius:8px;margin-bottom:8px;font-size:14px}.wn{background:var(--wnb);color:var(--wn)}.ok{background:var(--okb);color:var(--ok)}.in{background:var(--inb);color:var(--in)}
+.row{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed var(--bd);font-size:14px}.row:last-child{border:0}.t{font-family:ui-monospace,monospace;color:var(--mu);min-width:105px}
+.bar{display:flex;align-items:center;gap:8px;font-size:13px;margin:5px 0}.bar span:first-child{width:120px;color:var(--mu)}.bar i{display:block;height:10px;background:var(--ac);border-radius:5px;min-width:2px}
+.sc{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}
+button{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:9px 14px;font:inherit;cursor:pointer}button.g{background:transparent;color:var(--mu);border:1px solid var(--bd)}
+</style>
+</head>
+<body><div class="wrap">
+<h1>🧭 TripWise AI</h1><p class="sub">Personalized travel planner: recommend, budget-check, schedule.</p>
+<div class="grid">
+<form class="card" id="f" oninput="run()" onsubmit="return false">
+<h2>Your trip</h2>
+<label>Destination (type a place)</label><input id="dest" list="dl" value="Goa" autocomplete="off"><datalist id="dl"></datalist>
+<label>Total budget (₹)</label><input type="number" id="budget" value="25000" min="1000" step="1000">
+<label>Days</label><input type="number" id="days" value="3" min="1" max="7">
+<label>People</label><input type="number" id="ppl" value="2" min="1" max="10">
+<label>Accommodation</label><select id="stay"><option>budget</option><option selected>standard</option><option>luxury</option></select>
+<label>Travel to destination</label><select id="tr"><option>bus</option><option selected>train</option><option>car</option><option>flight</option></select>
+<label>Local travel</label><select id="local"><option>cab</option><option>public</option></select>
+<label>One-way distance (km)</label><input type="number" id="km" value="300" min="10" step="10">
+<label>Interests</label><div class="chips" id="ints"></div>
+</form>
+<div id="out"></div>
+</div></div>
+<script>
+const CSV=`Goa,Dudhsagar Falls,nature|adventure,trekking / jeep safari,400,4.6,5,15.3144,74.3143
+Goa,Scuba Diving (Grande Island),adventure|beaches,water sports,2500,4.5,4,15.4,73.8
+Goa,Fort Aguada,history|beaches,sightseeing,50,4.4,1.5,15.4925,73.7737
+Goa,Baga Beach,beaches|food|adventure,leisure,0,4.3,3,15.5553,73.7517
+Goa,Calangute Beach,beaches|shopping,leisure,0,4.2,2.5,15.544,73.7553
+Goa,Anjuna Flea Market,shopping|culture|food,shopping,0,4.1,2.5,15.5736,73.7413
+Goa,Basilica of Bom Jesus,history|culture,sightseeing,0,4.6,1.5,15.5009,73.9116
+Goa,Se Cathedral,history|culture,sightseeing,0,4.4,1,15.5035,73.9117
+Goa,Chapora Fort,history|nature,sightseeing,0,4.3,1.5,15.6059,73.7352
+Goa,Palolem Beach,beaches|nature,leisure,0,4.5,3,15.01,74.0232
+Goa,Butterfly Beach Boat Trip,nature|beaches,boat trip,500,4.3,3,15.018,74.02
+Goa,Spice Plantation Tour,nature|food|culture,guided tour,700,4.4,3,15.4036,74.0151
+Goa,Mangeshi Temple,culture|history,sightseeing,0,4.3,1,15.4565,73.999
+Goa,Fontainhas Latin Quarter,history|culture|food,heritage walk,0,4.5,2,15.4964,73.833
+Goa,Panjim Riverfront Cruise,culture|food,cruise,400,4.2,1.5,15.4989,73.8278
+Goa,Mapusa Market,shopping|food,shopping,0,4,1.5,15.5919,73.8087
+Goa,Parasailing at Calangute,adventure|beaches,water sports,1000,4.2,1,15.543,73.755
+Goa,Cabo de Rama Fort,history|nature,sightseeing,0,4.3,2,15.0889,73.9199
+Goa,Mollem National Park Safari,nature|adventure,wildlife safari,600,4.2,3,15.3858,74.24
+Goa,Goan Food Trail (Panjim),food|culture,food tour,900,4.5,2.5,15.4909,73.8278
+Goa,Vagator Beach Sunset,beaches|nature,leisure,0,4.4,2,15.5984,73.7387
+Hampi,Virupaksha Temple,history|culture,sightseeing,0,4.6,2,15.335,76.46
+Hampi,Vittala Temple & Stone Chariot,history|culture,sightseeing,40,4.7,2.5,15.3425,76.4747
+Hampi,Matanga Hill Sunrise Trek,nature|adventure,trekking,0,4.6,2,15.3355,76.469
+Hampi,Tungabhadra Coracle Ride,nature|adventure,boat trip,300,4.4,1.5,15.336,76.464
+Hampi,Lotus Mahal & Elephant Stables,history,sightseeing,40,4.4,1.5,15.326,76.473
+Hampi,Hampi Bazaar,shopping|food|culture,shopping,0,4.1,1.5,15.3355,76.462
+Hampi,Hemakuta Hill,nature|history,sightseeing,0,4.3,1.5,15.333,76.464
+Hampi,Anegundi Village Cycling,adventure|nature|culture,cycling tour,500,4.3,3,15.35,76.49
+Mysuru,Mysore Palace,history|culture,sightseeing,100,4.7,2.5,12.3052,76.6552
+Mysuru,Chamundi Hills,nature|culture,sightseeing,0,4.4,2,12.2724,76.67
+Mysuru,Brindavan Gardens,nature|culture,leisure,100,4.2,2,12.4244,76.5718
+Mysuru,Devaraja Market,shopping|food|culture,shopping,0,4.2,1.5,12.308,76.654
+Mysuru,Mysore Zoo,nature,wildlife,100,4.3,3,12.3017,76.6624
+Mysuru,St. Philomena's Church,history|culture,sightseeing,0,4.4,1,12.3166,76.6527
+Mysuru,Karanji Lake,nature,leisure,50,4.1,1.5,12.3,76.67
+Mysuru,Mysuru Food Trail,food|culture,food tour,500,4.5,2,12.301,76.655
+Jaipur,Amber Fort,history,sightseeing,500,4.6,3,26.9855,75.8513
+Jaipur,City Palace Jaipur,history|culture,sightseeing,700,4.5,2,26.9258,75.8237
+Jaipur,Hawa Mahal,history,sightseeing,50,4.4,1,26.9239,75.8267
+Jaipur,Johari Bazaar,shopping|food|culture,shopping,0,4.2,2,26.9196,75.826
+Delhi,Red Fort,history|culture,sightseeing,35,4.4,2,28.6562,77.241
+Delhi,India Gate,history,sightseeing,0,4.6,1,28.6129,77.2295
+Delhi,Qutub Minar,history,sightseeing,40,4.5,1.5,28.5245,77.1855
+Delhi,Chandni Chowk Food Walk,food|shopping|culture,food tour,0,4.3,2.5,28.6506,77.2303
+Agra,Taj Mahal,history|culture,sightseeing,1100,4.8,3,27.1751,78.0421
+Agra,Agra Fort,history,sightseeing,650,4.5,2,27.1795,78.0211
+Agra,Mehtab Bagh,nature|history,sightseeing,300,4.3,1,27.1796,78.0422
+Agra,Kinari Bazaar,shopping|food,shopping,0,4,1.5,27.185,78.015
+Varanasi,Ganga Aarti Dashashwamedh Ghat,culture,ceremony,0,4.8,1.5,25.3076,83.0104
+Varanasi,Kashi Vishwanath Temple,culture|history,sightseeing,0,4.7,1.5,25.3109,83.0107
+Varanasi,Sarnath,history|culture,sightseeing,25,4.4,2.5,25.3811,83.0228
+Varanasi,Sunrise Boat Ride on Ganga,culture|nature,boat trip,400,4.6,2,25.307,83.01
+Mumbai,Gateway of India,history,sightseeing,0,4.6,1,18.922,72.8347
+Mumbai,Marine Drive,beaches|nature,leisure,0,4.5,1.5,18.944,72.823
+Mumbai,Elephanta Caves,history|culture,ferry + sightseeing,250,4.3,4,18.9633,72.9315
+Mumbai,Colaba Causeway,shopping|food,shopping,0,4.1,2,18.917,72.831
+Udaipur,City Palace Udaipur,history|culture,sightseeing,300,4.6,2.5,24.5764,73.6835
+Udaipur,Lake Pichola Boat Ride,nature|culture,boat trip,400,4.5,1.5,24.572,73.679
+Udaipur,Monsoon Palace,nature|history,sightseeing,300,4.4,2,24.597,73.634
+Udaipur,Bagore Ki Haveli,culture|history,sightseeing,100,4.4,1.5,24.579,73.681
+Munnar,Eravikulam National Park,nature|adventure,trekking,200,4.5,3,10.1946,77.0453
+Munnar,Tea Gardens and Museum,nature|culture,guided tour,125,4.4,2,10.0889,77.0595
+Munnar,Mattupetty Dam Boating,nature|adventure,boat trip,50,4.2,1.5,10.106,77.123
+Munnar,Top Station Viewpoint,nature,leisure,0,4.5,2,10.113,77.229
+Alleppey,Houseboat Backwater Cruise,nature|culture,boat trip,3000,4.6,5,9.4981,76.3388
+Alleppey,Alappuzha Beach,beaches,leisure,0,4.1,1.5,9.489,76.326
+Alleppey,Kuttanad Village Canoe Ride,nature|culture,canoe tour,600,4.5,2,9.43,76.36
+Alleppey,Marari Beach,beaches|nature,leisure,0,4.4,2.5,9.603,76.297
+Kochi,Fort Kochi Chinese Fishing Nets,history|culture,sightseeing,0,4.3,1,9.9658,76.242
+Kochi,Mattancherry Palace,history|culture,sightseeing,5,4.2,1.5,9.9576,76.2594
+Kochi,Kathakali Show,culture,performance,350,4.4,1.5,9.968,76.243
+Kochi,Kerala Food Trail,food|culture,food tour,700,4.5,2.5,9.9312,76.2673
+Ooty,Ooty Botanical Garden,nature,sightseeing,30,4.3,1.5,11.417,76.711
+Ooty,Nilgiri Mountain Railway,culture|nature,train ride,300,4.6,3,11.4064,76.6932
+Ooty,Doddabetta Peak,nature,sightseeing,10,4.2,1.5,11.4,76.737
+Ooty,Ooty Lake Boating,nature|adventure,boat trip,200,4,1.5,11.409,76.691
+Coorg,Abbey Falls,nature,sightseeing,20,4.3,1.5,12.454,75.727
+Coorg,Dubare Elephant Camp,nature|adventure,wildlife,500,4.4,3,12.3996,75.945
+Coorg,Rajas Seat,nature|culture,sightseeing,10,4.4,1,12.418,75.739
+Coorg,Coffee Plantation Tour,nature|food|culture,guided tour,600,4.5,2.5,12.3375,75.8069
+Gokarna,Om Beach,beaches|nature,leisure,0,4.5,2.5,14.516,74.319
+Gokarna,Mahabaleshwar Temple,culture|history,sightseeing,0,4.5,1,14.5479,74.3188
+Gokarna,Kudle Beach,beaches|nature,leisure,0,4.4,2.5,14.526,74.318
+Gokarna,Half Moon Beach Trek,nature|adventure,trekking,0,4.5,3,14.509,74.325
+Bengaluru,Lalbagh Botanical Garden,nature,sightseeing,30,4.5,2,12.9507,77.5848
+Bengaluru,Cubbon Park and Vidhana Soudha,nature|history,leisure,0,4.4,1.5,12.9763,77.5929
+Bengaluru,Bangalore Palace,history|culture,sightseeing,280,4.2,1.5,12.9988,77.5921
+Bengaluru,VV Puram Food Street,food|shopping,food tour,0,4.4,2,12.95,77.574
+Pune,Shaniwar Wada,history,sightseeing,25,4.3,1.5,18.5195,73.8553
+Pune,Aga Khan Palace,history|culture,sightseeing,25,4.4,1.5,18.5524,73.9014
+Pune,Sinhagad Fort Trek,adventure|history|nature,trekking,0,4.5,3.5,18.3663,73.7558
+Pune,FC Road Food and Shopping,food|shopping,food tour,0,4.2,2,18.516,73.856
+Hyderabad,Charminar,history|culture,sightseeing,25,4.4,1,17.3616,78.4747
+Hyderabad,Golconda Fort,history,sightseeing,25,4.5,2.5,17.3833,78.4011
+Hyderabad,Ramoji Film City,adventure|culture,theme park,1350,4.4,6,17.2543,78.6808
+Hyderabad,Hyderabadi Biryani Trail,food|culture,food tour,600,4.6,2,17.385,78.4867
+Chennai,Marina Beach,beaches,leisure,0,4.2,1.5,13.05,80.2824
+Chennai,Kapaleeshwarar Temple,culture|history,sightseeing,0,4.6,1,13.0337,80.2697
+Chennai,Fort St George Museum,history,sightseeing,25,4.2,1.5,13.0797,80.2879
+Chennai,T Nagar and Filter Coffee,shopping|food,shopping,0,4.1,2,13.0418,80.2341
+Pondicherry,Promenade Beach,beaches,leisure,0,4.4,1.5,11.934,79.833
+Pondicherry,Auroville Matrimandir,culture|nature,sightseeing,0,4.5,2.5,12.0067,79.81
+Pondicherry,French Quarter Walk,history|culture|food,heritage walk,0,4.6,2,11.933,79.83
+Pondicherry,Paradise Beach,beaches|nature,boat trip,150,4.3,3,11.8845,79.815
+Madurai,Meenakshi Amman Temple,culture|history,sightseeing,0,4.8,2,9.9195,78.1193
+Madurai,Thirumalai Nayakkar Palace,history,sightseeing,50,4.2,1,9.9143,78.126
+Madurai,Gandhi Memorial Museum,history,museum,0,4.3,1.5,9.939,78.145
+Madurai,Madurai Street Food Trail,food|culture,food tour,300,4.5,2,9.9252,78.1198
+Rishikesh,Ganga River Rafting,adventure|nature,rafting,1500,4.6,3,30.109,78.302
+Rishikesh,Laxman Jhula,culture|nature,sightseeing,0,4.4,1,30.126,78.321
+Rishikesh,Ganga Aarti Triveni Ghat,culture,ceremony,0,4.7,1.5,30.101,78.294
+Rishikesh,Bungee Jumping,adventure,bungee,3500,4.5,2,30.13,78.4
+Manali,Solang Valley,adventure|nature,snow activities,800,4.5,4,32.317,77.157
+Manali,Hadimba Temple,culture|history,sightseeing,0,4.4,1,32.248,77.18
+Manali,Rohtang Pass,nature|adventure,sightseeing,500,4.4,5,32.3716,77.2466
+Manali,Old Manali Cafes,food|shopping,leisure,0,4.3,2,32.26,77.176
+Shimla,The Ridge and Mall Road,shopping|food,leisure,0,4.4,2,31.1048,77.1734
+Shimla,Jakhoo Temple,culture|nature,sightseeing,0,4.3,1.5,31.1008,77.1858
+Shimla,Kufri,nature|adventure,leisure,300,4.1,3,31.0981,77.2654
+Shimla,Christ Church,history|culture,sightseeing,0,4.4,0.5,31.1049,77.1717
+Darjeeling,Tiger Hill Sunrise,nature,sightseeing,100,4.5,2,26.998,88.291
+Darjeeling,Toy Train Joyride,culture|nature,train ride,1200,4.5,2,27.041,88.2663
+Darjeeling,Happy Valley Tea Estate,nature|food|culture,guided tour,100,4.4,1.5,27.056,88.262
+Darjeeling,Batasia Loop,history|nature,sightseeing,50,4.3,1,27.03,88.25
+Gangtok,Tsomgo Lake,nature|adventure,sightseeing,400,4.5,5,27.375,88.764
+Gangtok,Rumtek Monastery,culture|history,sightseeing,0,4.3,2,27.289,88.565
+Gangtok,MG Marg,shopping|food,leisure,0,4.4,1.5,27.3314,88.6138
+Gangtok,Nathula Pass Day Trip,adventure|nature,sightseeing,2500,4.5,8,27.3866,88.831
+Kolkata,Victoria Memorial,history|culture,sightseeing,30,4.6,2,22.5448,88.3426
+Kolkata,Howrah Bridge and Flower Market,history|culture,sightseeing,0,4.4,1.5,22.5851,88.3468
+Kolkata,Dakshineswar Kali Temple,culture,sightseeing,0,4.5,1.5,22.655,88.3573
+Kolkata,Park Street Food Trail,food|culture,food tour,600,4.5,2,22.553,88.352
+Amritsar,Golden Temple,culture|history,sightseeing,0,4.9,2.5,31.62,74.8765
+Amritsar,Jallianwala Bagh,history,sightseeing,0,4.6,1,31.6206,74.88
+Amritsar,Wagah Border Ceremony,culture|history,ceremony,0,4.6,3,31.604,74.573
+Amritsar,Amritsari Kulcha Trail,food|culture,food tour,400,4.6,1.5,31.634,74.8723
+Leh,Pangong Lake,nature|adventure,sightseeing,600,4.8,8,33.7595,78.6674
+Leh,Leh Palace,history|culture,sightseeing,100,4.4,1.5,34.1647,77.5845
+Leh,Khardung La,adventure|nature,sightseeing,600,4.5,5,34.278,77.604
+Leh,Magnetic Hill and Sangam,nature|adventure,sightseeing,0,4.2,2,34.19,77.4
+Srinagar,Dal Lake Shikara Ride,nature|culture,boat trip,800,4.6,2,34.0837,74.837
+Srinagar,Shalimar Mughal Garden,nature|history,sightseeing,30,4.5,1.5,34.146,74.876
+Srinagar,Gulmarg Gondola,adventure|nature,cable car,1500,4.7,5,34.0484,74.3805
+Srinagar,Old City Wazwan Trail,food|culture,food tour,700,4.4,2,34.09,74.8
+Jaisalmer,Jaisalmer Fort,history|culture,sightseeing,0,4.6,2.5,26.9124,70.9129
+Jaisalmer,Sam Sand Dunes Camel Safari,adventure|nature,safari,1500,4.6,4,26.833,70.513
+Jaisalmer,Patwon Ki Haveli,history|culture,sightseeing,150,4.4,1,26.917,70.914
+Jaisalmer,Gadisar Lake,nature|culture,leisure,20,4.3,1,26.904,70.917
+Andaman,Radhanagar Beach,beaches|nature,leisure,0,4.8,3,11.9847,92.95
+Andaman,Scuba Diving Havelock,adventure|beaches,water sports,4000,4.7,3,11.97,92.99
+Andaman,Cellular Jail,history,sightseeing,30,4.5,2,11.6745,92.7459
+Andaman,Ross Island,history|nature,boat trip,300,4.3,3,11.678,92.764
+Dubai,Burj Khalifa At The Top,culture|adventure,sightseeing,4500,4.7,2,25.1972,55.2744
+Dubai,Desert Safari,adventure|nature,safari,3500,4.6,5,25.05,55.4
+Dubai,Dubai Mall and Fountain,shopping|food,shopping,0,4.6,3,25.1985,55.2796
+Dubai,Jumeirah Beach,beaches,leisure,0,4.5,2.5,25.2,55.238
+Singapore,Gardens by the Bay,nature|culture,sightseeing,1500,4.7,3,1.2816,103.8636
+Singapore,Universal Studios Singapore,adventure|culture,theme park,6500,4.6,7,1.254,103.8238
+Singapore,Sentosa Beaches,beaches,leisure,0,4.4,3,1.255,103.811
+Singapore,Hawker Centre Food Trail,food|culture,food tour,700,4.6,2,1.28,103.845
+Bangkok,Grand Palace,history|culture,sightseeing,1300,4.6,2.5,13.75,100.4913
+Bangkok,Wat Arun,history|culture,sightseeing,200,4.6,1.5,13.7437,100.4888
+Bangkok,Chatuchak Weekend Market,shopping|food,shopping,0,4.5,3,13.7999,100.55
+Bangkok,Yaowarat Street Food,food|culture,food tour,600,4.6,2,13.74,100.51
+Bali,Uluwatu Temple Kecak Dance,culture|nature,performance,900,4.6,2.5,-8.8291,115.0849
+Bali,Ubud Monkey Forest and Rice Terraces,nature|culture,sightseeing,400,4.5,3,-8.519,115.259
+Bali,Seminyak Beach,beaches|food,leisure,0,4.4,3,-8.691,115.158
+Bali,Mount Batur Sunrise Trek,adventure|nature,trekking,3500,4.7,6,-8.242,115.375
+Paris,Eiffel Tower,history|culture,sightseeing,2800,4.7,2.5,48.8584,2.2945
+Paris,Louvre Museum,history|culture,museum,1900,4.7,3.5,48.8606,2.3376
+Paris,Seine River Cruise,culture|nature,boat trip,1400,4.5,1.5,48.86,2.293
+Paris,Montmartre and Sacre-Coeur,history|culture|food,walk,0,4.6,2.5,48.8867,2.3431
+London,British Museum,history|culture,museum,0,4.7,3,51.5194,-0.127
+London,Tower of London,history,sightseeing,3000,4.5,2.5,51.5081,-0.0759
+London,London Eye,culture|adventure,sightseeing,2800,4.5,1,51.5033,-0.1196
+London,Borough Market,food|shopping,food tour,0,4.6,2,51.5055,-0.091
+Tokyo,Senso-ji Temple,culture|history,sightseeing,0,4.6,1.5,35.7148,139.7967
+Tokyo,Shibuya Crossing and Shopping,shopping|culture,shopping,0,4.5,2.5,35.6595,139.7005
+Tokyo,Tsukiji Outer Market,food|culture,food tour,0,4.6,2,35.6655,139.7707
+Tokyo,teamLab Planets,culture|adventure,museum,2800,4.6,2.5,35.649,139.789
+Maldives,Snorkeling Reef Trip,adventure|beaches,water sports,4500,4.7,3,4.17,73.51
+Maldives,Sunset Dolphin Cruise,beaches|nature,boat trip,3500,4.6,2,4.1755,73.5093
+Maldives,Hulhumale Beach,beaches,leisure,0,4.2,2,4.22,73.54
+Maldives,Male City and Fish Market Tour,culture|food,sightseeing,0,4,2,4.1755,73.51
+Kathmandu,Pashupatinath Temple,culture|history,sightseeing,700,4.6,2,27.7109,85.3488
+Kathmandu,Boudhanath Stupa,culture|history,sightseeing,400,4.7,1.5,27.7215,85.362
+Kathmandu,Swayambhunath,culture|history,sightseeing,200,4.6,2,27.7149,85.2904
+Kathmandu,Thamel Market,shopping|food,shopping,0,4.3,2.5,27.7154,85.3123
+Kuala Lumpur,Petronas Twin Towers,culture,sightseeing,1800,4.6,2,3.1579,101.7116
+Kuala Lumpur,Batu Caves,culture|nature,sightseeing,0,4.5,2,3.2379,101.684
+Kuala Lumpur,Jalan Alor Food Street,food|culture,food tour,600,4.5,2,3.1456,101.7084
+Kuala Lumpur,Bukit Bintang Shopping,shopping|food,shopping,0,4.4,3,3.1466,101.711
+Istanbul,Hagia Sophia,history|culture,sightseeing,1800,4.8,1.5,41.0086,28.9802
+Istanbul,Blue Mosque,history|culture,sightseeing,0,4.7,1,41.0054,28.9768
+Istanbul,Grand Bazaar,shopping|food,shopping,0,4.4,2.5,41.0107,28.968
+Istanbul,Bosphorus Cruise,nature|culture,boat trip,1500,4.6,2,41.0166,28.973
+New York,Statue of Liberty and Ellis Island,history|culture,ferry + sightseeing,2000,4.6,4,40.6892,-74.0445
+New York,Central Park,nature,leisure,0,4.8,2.5,40.7829,-73.9654
+New York,Empire State Building,culture|adventure,sightseeing,5000,4.7,1.5,40.7484,-73.9857
+New York,Times Square,shopping|food,leisure,0,4.6,1.5,40.758,-73.9855
+Sydney,Sydney Opera House,culture|history,tour,2500,4.7,1.5,-33.8568,151.2153
+Sydney,Bondi Beach,beaches,leisure,0,4.6,3,-33.8915,151.2767
+Sydney,Taronga Zoo,nature,wildlife,3500,4.5,3,-33.8431,151.2411
+Sydney,Manly Ferry and Beach,beaches|nature,ferry,700,4.5,3,-33.7969,151.285
+Rome,Colosseum,history|culture,sightseeing,2000,4.8,2.5,41.8902,12.4922
+Rome,Vatican Museums,history|culture,museum,2200,4.7,3.5,41.9065,12.4536
+Rome,Trevi Fountain,culture|history,sightseeing,0,4.7,0.5,41.9009,12.4833
+Rome,Trastevere Food Walk,food|culture,food tour,800,4.6,2,41.889,12.469`;
+const MX={"Mumbai":1.4,"Delhi":1.1,"Bengaluru":1.2,"Andaman":1.3,"Leh":1.3,"Dubai":2.5,"Singapore":3.0,"Bangkok":1.5,"Bali":1.4,"Paris":4.0,"London":4.5,"Tokyo":3.0,"Maldives":4.0,"Kathmandu":0.8,"Kuala Lumpur":1.3,"Istanbul":1.6,"New York":5.0,"Sydney":4.0,"Rome":3.5};
+const INT=["nature","adventure","history","beaches","shopping","food","culture"];
+const STAY={budget:800,standard:2000,luxury:5000},FOOD={budget:400,standard:800,luxury:1500};
+const D=CSV.split("\n").map(l=>{const c=l.split(",");return{dest:c[0],name:c[1],tags:c[2].split("|"),type:c[3],cost:+c[4],rating:+c[5],hrs:+c[6],lat:+c[7],lon:+c[8]}});
+const $=id=>document.getElementById(id),fmt=n=>Math.round(n).toLocaleString("en-IN");
+
+// 1. Recommender: cosine similarity over [interest tags | rating | affordability]
+function rank(dest,ints,budget,days,ppl){
+  const sub=D.filter(p=>p.dest==dest),mx=Math.max(1,...sub.map(p=>p.cost));
+  const tight=Math.min(1,Math.max(0,1-budget/Math.max(ppl*days,1)/6000)),set=ints.length?ints:INT;
+  const u=[...INT.map(i=>set.includes(i)?1:0),.35,tight*.25];
+  return sub.map(p=>{
+    const v=[...INT.map(i=>p.tags.includes(i)?1:0),p.rating/5*.35,(1-p.cost/mx)*.25];
+    const dot=v.reduce((s,x,i)=>s+x*u[i],0),n=Math.hypot(...v)*Math.hypot(...u);
+    return{...p,score:n?dot/n:0}}).sort((a,b)=>b.score-a.score)}
+
+// 2. Budget optimizer
+function tcost(t){if(t.tr=="car")return Math.ceil(t.ppl/4)*t.km*2*11;
+  if(t.tr=="flight")return t.ppl*2*(3500+Math.max(t.km-500,0)*3);
+  return t.ppl*t.km*2*(t.tr=="bus"?1.5:2)}
+function est(t,pl){
+  const m=MX[t.dest]||1;
+  const loc=m*(t.local=="public"?120*t.ppl*t.days:Math.ceil(t.ppl/4)*1800*t.days);
+  const o={"Transport":tcost(t),"Accommodation":m*STAY[t.stay]*Math.ceil(t.ppl/2)*Math.max(t.days-1,0),
+    "Food":m*FOOD[t.stay]*t.ppl*t.days,"Activities":pl.reduce((s,p)=>s+p.cost,0)*t.ppl,"Local travel":loc};
+  const s=Object.values(o).reduce((a,b)=>a+b,0);o["Emergency (10%)"]=s*.1;o.TOTAL=s*1.1;return o}
+function optimise(t,sel,pool){
+  t={...t};sel=[...sel];pool=[...pool];const ch=[],al=[],over=()=>est(t,sel).TOTAL>t.budget,first=est(t,sel).TOTAL;
+  if(over())al.push(`Budget overrun: estimated ₹${fmt(first)} vs budget ₹${fmt(t.budget)}.`);
+  const SL=["budget","standard","luxury"],TD=["flight","car","train","bus"];
+  while(over()&&t.stay!="budget"){const n=SL[SL.indexOf(t.stay)-1];ch.push(`Stay ${t.stay} → ${n} (also lowers food cost)`);t.stay=n}
+  if(over()&&t.local!="public"){ch.push("Local travel cab → public transport");t.local="public"}
+  while(over()&&t.tr!="bus"){const n=TD[TD.indexOf(t.tr)+1];ch.push(`Long-distance transport ${t.tr} → ${n}`);t.tr=n}
+  while(over()){const paid=sel.filter(p=>p.cost>0);if(!paid.length)break;
+    const v=paid.reduce((a,b)=>a.score/a.cost<b.score/b.cost?a:b);sel=sel.filter(p=>p!==v);
+    const k=pool.findIndex(p=>p.cost<=v.cost*.5);
+    if(k>=0){const r=pool.splice(k,1)[0];sel.push(r);ch.push(`Replaced ${v.name} (₹${v.cost}) with cheaper ${r.name}`)}
+    else ch.push(`Dropped paid activity ${v.name} (₹${v.cost})`)}
+  const b=est(t,sel),fits=b.TOTAL<=t.budget;
+  if(al.length&&!fits)al.push("Even the cheapest options exceed the budget. Increase the budget or reduce days/people.");
+  return{t,sel:sel.sort((a,b)=>b.score-a.score),b,al,ch,fits}}
+
+// 3. Itinerary generator
+const km=(a,b)=>{const r=Math.PI/180,h=Math.sin((b.lat-a.lat)*r/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin((b.lon-a.lon)*r/2)**2;return 2*6371*Math.asin(Math.sqrt(h))*1.3};
+const hm=h=>{const m=Math.round(h*60);return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")};
+function itin(pl,days){let rem=[...pl].sort((a,b)=>b.score-a.score);const out=[];
+  for(let d=1;d<=days;d++){let t=9,pos=null,lunch=false,n=0;const s=[];
+    while(rem.length&&n<4){
+      if(!lunch&&t>=12.5){s.push({a:t,b:t+1,w:"🍽️ Lunch break"});t+=1;lunch=true}
+      const opts=rem.map(p=>({p,tr:pos?km(pos,p)/30:0})).filter(o=>t+o.tr+o.p.hrs<=19);
+      if(!opts.length)break;
+      const o=pos?opts.reduce((a,b)=>a.tr<=b.tr?a:b):opts[0];
+      if(pos&&o.tr>0){s.push({a:t,b:t+o.tr,w:"🚗 Travel to "+o.p.name});t+=o.tr}
+      s.push({a:t,b:t+o.p.hrs,w:"📍 "+o.p.name+(o.p.cost?` (₹${o.p.cost} pp)`:"")});t+=o.p.hrs;pos=o.p;n++;rem=rem.filter(x=>x!==o.p)}
+    out.push(s)}
+  return{out,left:rem}}
+
+// UI
+$("dl").innerHTML=[...new Set(D.map(p=>p.dest))].map(d=>`<option value="${d}">`).join("");
+$("ints").innerHTML=INT.map(i=>`<label><input type="checkbox" value="${i}" ${["nature","adventure","beaches"].includes(i)?"checked":""} hidden><span>${i}</span></label>`).join("");
+let last=null;
+function run(){
+  const ints=[...document.querySelectorAll("#ints input:checked")].map(x=>x.value);
+  const v=id=>$(id).value,N=id=>Math.max(1,+$(id).value||1);
+  const names=[...new Set(D.map(p=>p.dest))],q=$("dest").value.trim().toLowerCase();
+  const dest=names.find(n=>n.toLowerCase()==q)||(q&&names.find(n=>n.toLowerCase().includes(q)||q.includes(n.toLowerCase())));
+  if(!dest){$("out").innerHTML=`<div class="al wn">No data for "${$("dest").value}". Try: ${names.join(", ")}.</div>`;return}
+  const budget=N("budget"),days=Math.min(7,N("days")),ppl=N("ppl");
+  const ranked=rank(dest,ints,budget,days,ppl),n=Math.min(ranked.length,days*3);
+  const r=optimise({dest,budget,days,ppl,stay:v("stay"),tr:v("tr"),local:v("local"),km:N("km")},ranked.slice(0,n),ranked.slice(n));
+  const it=itin(r.sel,days);last={r,ints,dest:dest,budget,days,ppl};
+  const T=r.b.TOTAL,parts=Object.entries(r.b).filter(([k])=>k!="TOTAL"),mx=Math.max(...parts.map(x=>x[1]),1);
+  $("out").innerHTML=`
+  <div class="m"><div><small>Estimated total</small><b>₹${fmt(T)}</b></div><div><small>Budget</small><b>₹${fmt(budget)}</b></div><div><small>Remaining</small><b>₹${fmt(budget-T)}</b></div></div><br>
+  ${r.al.map(a=>`<div class="al wn">${a}</div>`).join("")}${r.ch.map(c=>`<div class="al in">${c}</div>`).join("")}
+  <div class="al ${r.fits?"ok":"wn"}">${r.fits?(r.al.length?"After the changes above, the plan fits your budget.":"Plan fits within your budget."):"Plan does not fit the budget."}</div>
+  <div class="card"><h2>Day-wise itinerary</h2>${it.out.map((s,i)=>`<b>Day ${i+1}</b>${s.length?s.map(x=>`<div class="row"><span class="t">${hm(x.a)}–${hm(x.b)}</span><span>${x.w}</span></div>`).join(""):"<div class='row'>Free day / rest</div>"}<br>`).join("")}
+  ${it.left.length?`<small>Could not fit: ${it.left.map(p=>p.name).join(", ")}</small>`:""}</div>
+  <div class="card"><h2>Budget breakdown</h2>${parts.map(([k,x])=>`<div class="bar"><span>${k}</span><i style="width:${x/mx*55}%"></i><span style="color:var(--tx)">₹${fmt(x)}</span></div>`).join("")}</div>
+  <div class="card"><h2>Recommended (cosine similarity)</h2><div class="sc"><table><tr><th>Place</th><th>Tags</th><th>Cost</th><th>Rating</th><th>Score</th></tr>${ranked.map(p=>`<tr><td>${p.name}</td><td>${p.tags.join(", ")}</td><td>₹${p.cost}</td><td>${p.rating}</td><td>${p.score.toFixed(3)}</td></tr>`).join("")}</table></div></div>
+  <div class="card"><h2>Saved plans</h2><button type="button" onclick="save()">💾 Save this plan</button> <button type="button" class="g" onclick="clr()">Clear</button><div id="sv" style="margin-top:10px"></div></div>`;
+  showSaved()}
+function get(){try{return JSON.parse(localStorage.getItem("tw")||"[]")}catch(e){return[]}}
+function put(a){try{localStorage.setItem("tw",JSON.stringify(a))}catch(e){}}
+function save(){const {r,dest,budget,days,ppl}=last;put([{t:new Date().toLocaleString(),dest,budget,days,ppl,total:r.b.TOTAL,fits:r.fits,places:r.sel.map(p=>p.name).join(", ")},...get()]);showSaved()}
+function clr(){put([]);showSaved()}
+function showSaved(){const a=get();$("sv").innerHTML=a.length?a.map(s=>`<div class="row"><span class="t">${s.t}</span><span>${s.dest}, ${s.days}d, ${s.ppl}p, ₹${fmt(s.total)} / ₹${fmt(s.budget)} ${s.fits?"✅":"⚠️"}<br><small>${s.places}</small></span></div>`).join(""):"<small>No saved plans yet.</small>"}
+run();
+</script></body></html>
